@@ -13,8 +13,8 @@ class LearningAgent(Agent):
         # TODO: Initialize any additional variables here
         self.Q = {}
         self.policy = {}
-        self.alpha = 0.4
-        self.gamma = 0.3
+        self.alpha = 1
+        self.gamma = 0
         self.actions = [None, 'forward', 'right', 'left']
 
     def reset(self, destination=None):
@@ -34,7 +34,7 @@ class LearningAgent(Agent):
 
         # TODO: Select action according to your policy
         #print type(self.policy)
-        action = self.actions[random.randrange(4)] if self.state not in self.policy else self.policy[self.state]
+        action = self.actions[random.randrange(4)] if self.state not in self.policy.keys() else self.policy[self.state]
         reward = self.env.act(self, action)
         state_prime = self.env.sense(self)
         state_prime['next_waypoint'] = self.planner.next_waypoint()
@@ -46,24 +46,18 @@ class LearningAgent(Agent):
         # Thus, as the Q learning algorithm converges, we would be finding he max(a) Q(s', a') if the policy has seen that state. Thus, there is no need to
         # calculate the max(a') Q(s', a') everytime as that would be recursively going on till i don't know what
         
-        action_prime  = self.actions[random.randrange(4)] if state_prime not in self.policy else self.policy[state_prime]
+        action_prime  = self.actions[random.randrange(4)] if state_prime not in self.policy.keys() else self.policy[state_prime]
 
         # TODO: Learn policy based on state, action, reward
         # Q_learning
         state_act_pair = (self.state, action)
         self.Q[state_act_pair] = (1 - self.alpha) * self.Q.get(state_act_pair, 0) + self.alpha*(reward + self.gamma*(self.Q.get((state_prime, action_prime), 0)))
         # Now we need to update the policy well(Take action that maximizes the utility of the present state, thus updating policy)
-        Q_max_candidates = [self.Q.get((self.state, act)) for act in self.actions]
+        Q_max_candidates = ([self.Q.get((self.state, act)) for act in self.actions])
         try:
-            if None not in Q_max_candidates:
-                # PERFORMS VERY POORLY WHEN ALL STATES NOT ALREADY SEEN.(11/100) THIS IS SO BECAUSE THE POLICY SHOULD NOT BE UPDATED 
-                # UNTIL ALL THE ACTIONS CORRESPONDING TO THE STATE HAS BEEN SEEN. OR ELSE IT WILL KEEP FOLLOWING THE SAME POLICY. AND 
-                # WILL NEVER FURTHER LEARN.
-                # ANOTHER METHOD IS THE EXPLORATION-EXPLOITATION METHOD WHEREBY THE ACTION IN THE POLICY IS TAKEN WITH PROB 1-e AND ANOTHER
-                # RANDOM ACTION WITH PROB e. 
-                Q_max = max(Q_max_candidates)
-                actions_candidates = [act for act in self.actions if Q_max == self.Q.get((self.state, act))]
-                self.policy[self.state]= random.choice(actions_candidates)
+            Q_max = max(Q_max_candidates)
+            actions_candidates = [act for act in self.actions if Q_max == self.Q.get((self.state, act))]
+            self.policy[self.state]= random.choice(actions_candidates)
         except Exception as e:
             print "Could not update the policy by choosing the max Q: {}".format(e)
         print "LearningAgent.update(): deadline = {}, inputs = {}, action = {}, reward = {}".format(deadline, inputs, action, reward)  # [debug]
